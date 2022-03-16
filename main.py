@@ -1,6 +1,7 @@
 import random
 
 import pygame
+from pygame import mixer
 from pygame.locals import *
 
 pygame.init()
@@ -14,6 +15,18 @@ pygame.display.set_caption("Snake")
 
 clock = pygame.time.Clock()
 fps = 15
+
+pygame.mixer.pre_init(44100, -16, 2, 512)
+mixer.init()
+
+pygame.mixer.music.load('assets/sound/music.wav')
+pygame.mixer.music.set_volume(0.5)
+pygame.mixer.music.play(-1, 0.0, 5000)
+
+eating_fx = pygame.mixer.Sound('assets/sound/eating.wav')
+eating_fx.set_volume(0.5)
+game_over_fx = pygame.mixer.Sound('assets/sound/game-over.wav')
+game_over_fx.set_volume(0.5)
 
 
 def get_cell_center(x, y):
@@ -69,6 +82,7 @@ class Snake(pygame.sprite.Sprite):
         for segment in self.tail:
             if segment.rect.center == new_pos:
                 self.has_collided = True
+                game_over_fx.play()
                 return 1  # game over
         if not self.has_collided:
             self.rect.center = new_pos
@@ -76,6 +90,7 @@ class Snake(pygame.sprite.Sprite):
 
         if pygame.sprite.spritecollide(self, food_group, True):
             self.tail.append(Segment(self.rect.centerx, self.rect.centery))
+            eating_fx.play()
             food_group.add(Food())
 
         return 0  # keep playing
