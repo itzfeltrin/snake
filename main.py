@@ -80,11 +80,20 @@ class Snake(pygame.sprite.Sprite):
 
         return 0  # keep playing
 
+    def reset(self):
+        self.rect = Rect(0, 0, grid_size, grid_size)
+        self.pos_x = 0
+        self.pos_y = 0
+        self.speed_x = 0
+        self.speed_y = 0
+        self.tail = []
+        self.has_collided = False
+
 
 class Segment(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
         pygame.sprite.Sprite.__init__(self)
-        segment_size = grid_size * 0.9
+        segment_size = grid_size * 0.85
         self.rect = Rect(pos_x, pos_y, segment_size, segment_size)
 
     def update(self):
@@ -106,7 +115,8 @@ food = Food()
 food_group = pygame.sprite.Group()
 food_group.add(food)
 
-font = pygame.font.Font('assets/font/8bitwonder.ttf', 20)
+font20 = pygame.font.Font('assets/font/8bitwonder.ttf', 20)
+font64 = pygame.font.Font('assets/font/8bitwonder.ttf', 64)
 
 game_over = 0
 # 1 = yes
@@ -129,21 +139,23 @@ while run:
                 snake.move(0, -1)
             if event.key == pygame.K_DOWN:
                 snake.move(0, 1)
+            if event.key == K_r and game_over == 1:
+                snake.reset()
 
     screen.fill((255, 255, 255))
 
-    for i in range(1, grid_count):
-        # horizontal line
-        if i > 1:
-            pygame.draw.line(screen, (0, 0, 0), (0, i * grid_size), (screen_size, i * grid_size), 1)
-        # vertical line
-        pygame.draw.line(screen, (0, 0, 0), (i * grid_size, 0), (i * grid_size, screen_size), 1)
+    # for i in range(1, grid_count):
+    #     # horizontal line
+    #     if i > 1:
+    #         pygame.draw.line(screen, (0, 0, 0), (0, i * grid_size), (screen_size, i * grid_size), 1)
+    #     # vertical line
+    #     pygame.draw.line(screen, (0, 0, 0), (i * grid_size, 0), (i * grid_size, screen_size), 1)
 
     food_group.update()
     game_over = snake.update()
     food_group.draw(screen)
 
-    score_img = font.render(f'score {len(snake.tail)}', True, (20, 18, 3))
+    score_img = font20.render(f'score {len(snake.tail)}', True, (20, 18, 3))
     screen.blit(score_img, (screen_size - score_img.get_width(), 0))
 
     if game_over == 1:
@@ -151,10 +163,13 @@ while run:
             segment.update()
         pygame.draw.rect(screen, (0, 255, 0), snake.rect)
 
-        game_over_img = font.render('Game over Press R to restart', True, (20, 18, 3))
+        game_over_img = font64.render('GAME OVER', True, (20, 18, 3))
+        restart_img = font20.render('PRESS R TO RESTART', True, (20, 18, 3))
         game_over_pos = (
             screen_size // 2 - game_over_img.get_width() // 2, screen_size // 2 - game_over_img.get_height() // 2)
+        restart_pos = (game_over_pos[0], game_over_pos[1] + game_over_img.get_height() + restart_img.get_height() // 2)
         screen.blit(game_over_img, game_over_pos)
+        screen.blit(restart_img, restart_pos)
 
     pygame.display.update()
 
