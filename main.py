@@ -5,7 +5,7 @@ from pygame.locals import *
 
 pygame.init()
 
-grid_size = 32
+grid_size = 24
 grid_count = 32
 screen_size = grid_size * grid_count
 
@@ -16,10 +16,18 @@ clock = pygame.time.Clock()
 fps = 15
 
 
+def get_cell_center(x, y):
+    pos_x = x * grid_size + grid_size // 2
+    pos_y = y * grid_size + grid_size // 2
+    return pos_x, pos_y
+
+
 class Snake(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
         self.rect = Rect(0, 0, grid_size, grid_size)
+        self.pos_x = 0
+        self.pos_y = 0
         self.speed_x = 0
         self.speed_y = 0
         self.tail = []
@@ -29,38 +37,47 @@ class Snake(pygame.sprite.Sprite):
         self.speed_y = speed_y
 
     def move_tail(self):
-        temp_pos_x = self.rect.x
-        temp_pos_y = self.rect.y
-        for index, tail_block in enumerate(self.tail):
-            loop_temp_x = tail_block.x
-            loop_temp_y = tail_block.y
-            self.tail[index].x = temp_pos_x
-            self.tail[index].y = temp_pos_y
-            temp_pos_x = loop_temp_x
-            temp_pos_y = loop_temp_y
+        index = len(self.tail) - 1
+        # should give me 3 - 1 = 2
+        while index >= 0:
+            if index == 0:
+                self.tail[index].rect.center = self.rect.center
+            else:
+                self.tail[index].rect.center = self.tail[index - 1].rect.center
+            index -= 1
 
     def update(self):
-        if len(self.tail) > 0:
-            self.move_tail()
+        self.move_tail()
 
-        self.rect.x += self.speed_x * grid_size
-        self.rect.y += self.speed_y * grid_size
-        if self.rect.x > grid_count * grid_size:
-            self.rect.x = 0
-        elif self.rect.x < 0:
-            self.rect.x = grid_count * grid_size
-        if self.rect.y > grid_count * grid_size:
-            self.rect.y = 0
-        elif self.rect.y < 0:
-            self.rect.y = grid_count * grid_size
-        pygame.draw.rect(screen, (255, 255, 255), self.rect)
+        for segment in self.tail:
+            segment.update()
+
+        self.pos_x += self.speed_x
+        self.pos_y += self.speed_y
+        if self.pos_x > grid_count - 1:
+            self.pos_x = 0
+        elif self.pos_x < 0:
+            self.pos_x = grid_count - 1
+        if self.pos_y > grid_count - 1:
+            self.pos_y = 0
+        elif self.pos_y < 0:
+            self.pos_y = grid_count - 1
+        self.rect.center = get_cell_center(self.pos_x, self.pos_y)
+        pygame.draw.rect(screen, (0, 255, 0), self.rect)
 
         if pygame.sprite.spritecollide(self, food_group, True):
-            self.tail.append(Rect(self.rect))
+            self.tail.append(Segment(self.rect.centerx, self.rect.centery))
             food_group.add(Food())
 
-        for tail_block in self.tail:
-            pygame.draw.rect(screen, (255, 255, 255), tail_block)
+
+class Segment(pygame.sprite.Sprite):
+    def __init__(self, pos_x, pos_y):
+        pygame.sprite.Sprite.__init__(self)
+        segment_size = grid_size * 0.9
+        self.rect = Rect(pos_x, pos_y, segment_size, segment_size)
+
+    def update(self):
+        pygame.draw.rect(screen, (0, 255, 0), self.rect)
 
 
 class Food(pygame.sprite.Sprite):
@@ -100,13 +117,13 @@ while run:
             if event.key == pygame.K_DOWN:
                 snake.move(0, 1)
 
-    screen.fill((20, 18, 0))
+    screen.fill((255, 255, 255))
 
-    # for i in range(1, grid_count):
-    #     # horizontal line
-    #     pygame.draw.line(screen, (255, 255, 255), (0, i * grid_size), (screen_size, i * grid_size), 1)
-    #     # vertical line
-    #     pygame.draw.line(screen, (255, 255, 255), (i * grid_size, 0), (i * grid_size, screen_size), 1)
+    for i in range(1, grid_count):
+        # horizontal line
+        pygame.draw.line(screen, (255, 255, 255), (0, i * grid_size), (screen_size, i * grid_size), 1)
+        # vertical line
+        pygame.draw.line(screen, (255, 255, 255), (i * grid_size, 0), (i * grid_size, screen_size), 1)
 
     food_group.update()
     food_group.draw(screen)
