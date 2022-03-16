@@ -31,6 +31,7 @@ class Snake(pygame.sprite.Sprite):
         self.speed_x = 0
         self.speed_y = 0
         self.tail = []
+        self.has_collided = False
 
     def move(self, speed_x, speed_y):
         self.speed_x = speed_x
@@ -38,7 +39,6 @@ class Snake(pygame.sprite.Sprite):
 
     def move_tail(self):
         index = len(self.tail) - 1
-        # should give me 3 - 1 = 2
         while index >= 0:
             if index == 0:
                 self.tail[index].rect.center = self.rect.center
@@ -46,9 +46,11 @@ class Snake(pygame.sprite.Sprite):
                 self.tail[index].rect.center = self.tail[index - 1].rect.center
             index -= 1
 
-    def update(self):
-        self.move_tail()
+    def update(self) -> int:
+        if self.has_collided:
+            return 1  # game over
 
+        self.move_tail()
         for segment in self.tail:
             segment.update()
 
@@ -62,12 +64,21 @@ class Snake(pygame.sprite.Sprite):
             self.pos_y = 0
         elif self.pos_y < 0:
             self.pos_y = grid_count - 1
-        self.rect.center = get_cell_center(self.pos_x, self.pos_y)
+        new_pos = get_cell_center(self.pos_x, self.pos_y)
+
+        for segment in self.tail:
+            if segment.rect.center == new_pos:
+                self.has_collided = True
+                return 1  # game over
+        if not self.has_collided:
+            self.rect.center = new_pos
         pygame.draw.rect(screen, (0, 255, 0), self.rect)
 
         if pygame.sprite.spritecollide(self, food_group, True):
             self.tail.append(Segment(self.rect.centerx, self.rect.centery))
             food_group.add(Food())
+
+        return 0  # keep playing
 
 
 class Segment(pygame.sprite.Sprite):
@@ -86,8 +97,7 @@ class Food(pygame.sprite.Sprite):
         image = pygame.image.load('assets/img/food.png').convert_alpha()
         self.image = pygame.transform.scale(image, (grid_size, grid_size))
         self.rect = self.image.get_rect()
-        self.rect.x = random.randint(0, 31) * grid_size
-        self.rect.y = random.randint(0, 31) * grid_size
+        self.rect.center = get_cell_center(random.randint(1, 31), random.randint(1, 31))
 
 
 snake = Snake()
@@ -98,6 +108,9 @@ food_group.add(food)
 
 font = pygame.font.Font('assets/font/8bitwonder.ttf', 20)
 
+game_over = 0
+# 1 = yes
+# 0 = no
 run = True
 while run:
     clock.tick(fps)
@@ -121,16 +134,27 @@ while run:
 
     for i in range(1, grid_count):
         # horizontal line
-        pygame.draw.line(screen, (255, 255, 255), (0, i * grid_size), (screen_size, i * grid_size), 1)
+        if i > 1:
+            pygame.draw.line(screen, (0, 0, 0), (0, i * grid_size), (screen_size, i * grid_size), 1)
         # vertical line
-        pygame.draw.line(screen, (255, 255, 255), (i * grid_size, 0), (i * grid_size, screen_size), 1)
+        pygame.draw.line(screen, (0, 0, 0), (i * grid_size, 0), (i * grid_size, screen_size), 1)
 
     food_group.update()
+    game_over = snake.update()
     food_group.draw(screen)
-    snake.update()
 
-    score_img = font.render(f'score {len(snake.tail)}', True, (255, 255, 255))
+    score_img = font.render(f'score {len(snake.tail)}', True, (20, 18, 3))
     screen.blit(score_img, (screen_size - score_img.get_width(), 0))
+
+    if game_over == 1:
+        for segment in snake.tail:
+            segment.update()
+        pygame.draw.rect(screen, (0, 255, 0), snake.rect)
+
+        game_over_img = font.render('Game over Press R to restart', True, (20, 18, 3))
+        game_over_pos = (
+            screen_size // 2 - game_over_img.get_width() // 2, screen_size // 2 - game_over_img.get_height() // 2)
+        screen.blit(game_over_img, game_over_pos)
 
     pygame.display.update()
 
